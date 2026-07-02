@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Custom environment and test artifacts
+.env
+*.cjs
+*.png
