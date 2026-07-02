@@ -13,45 +13,79 @@ export const ContactForm: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("=== Contact Form Debugging ===");
+    
+    const accessKey = import.meta.env.VITE_WEB3FORMS_ACCESS_KEY;
+    console.log("Environment variable VITE_WEB3FORMS_ACCESS_KEY:", {
+      value: accessKey,
+      type: typeof accessKey,
+      isUndefined: typeof accessKey === "undefined",
+      isPlaceholder: accessKey === "YOUR_ACCESS_KEY_HERE"
+    });
+
+    if (!accessKey || accessKey === "YOUR_ACCESS_KEY_HERE") {
+      setStatus("error");
+      setStatusMsg("Configuration Error: Web3Forms Access Key is not configured. Please create a .env file locally, or configure your VITE_WEB3FORMS_ACCESS_KEY in your hosting dashboard.");
+      console.error("Error: Web3Forms access key is missing or is set to placeholder.");
+      return;
+    }
+
     if (!name || !email || !message) {
       setStatus("error");
       setStatusMsg("Please fill out all required fields.");
+      console.warn("Validation failed: Missing name, email, or message.");
       return;
     }
 
     setStatus("sending");
 
+    // Construct FormData payload
+    const formData = new FormData();
+    formData.append("access_key", accessKey);
+    formData.append("name", name);
+    formData.append("email", email);
+    formData.append("subject", subject || "New Portfolio Contact");
+    formData.append("message", message);
+
+    console.log("Submitting FormData:");
+    console.log("- name:", name);
+    console.log("- email:", email);
+    console.log("- subject:", subject || "New Portfolio Contact");
+    console.log("- message length:", message.length);
+    console.log("- access_key (masked):", accessKey.substring(0, 4) + "..." + accessKey.substring(accessKey.length - 4));
+
     try {
       const response = await fetch("https://api.web3forms.com/submit", {
         method: "POST",
+        body: formData,
         headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json"
-        },
-        body: JSON.stringify({
-          access_key: import.meta.env.VITE_WEB3FORMS_ACCESS_KEY || "YOUR_ACCESS_KEY_HERE",
-          name: name,
-          email: email,
-          subject: subject || "New Portfolio Contact",
-          message: message
-        })
+          Accept: "application/json"
+        }
       });
 
+      console.log("Response HTTP Status:", response.status);
+      console.log("Response OK Status:", response.ok);
+
       const result = await response.json();
-      if (result.success) {
+      console.log("Response API JSON Payload:", result);
+
+      if (response.status === 200 && result.success === true) {
         setStatus("success");
         setStatusMsg("Message sent successfully! I will get back to you shortly.");
+        console.log("Form submission succeeded!");
         setName("");
         setEmail("");
         setSubject("");
         setMessage("");
       } else {
         setStatus("error");
-        setStatusMsg(result.message || "Something went wrong. Please try again.");
+        setStatusMsg(result.message || "Form submission failed. Please verify your access key is correct.");
+        console.error("Form submission failed by API:", result.message || "Unknown API response");
       }
-    } catch (error) {
+    } catch (error: any) {
       setStatus("error");
-      setStatusMsg("Failed to send message. Please check your network connection.");
+      setStatusMsg("Network Error: Failed to reach the mail server. Please check your internet connection or CORS configurations.");
+      console.error("Network Exception in Form Submission:", error);
     }
   };
 
