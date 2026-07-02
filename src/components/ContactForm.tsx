@@ -11,7 +11,7 @@ export const ContactForm: React.FC = () => {
   const [status, setStatus] = useState<"idle" | "sending" | "success" | "error">("idle");
   const [statusMsg, setStatusMsg] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !email || !message) {
       setStatus("error");
@@ -20,15 +20,39 @@ export const ContactForm: React.FC = () => {
     }
 
     setStatus("sending");
-    // Simulate sending email API delay
-    setTimeout(() => {
-      setStatus("success");
-      setStatusMsg("Message received! Thank you for reaching out.");
-      setName("");
-      setEmail("");
-      setSubject("");
-      setMessage("");
-    }, 1500);
+
+    try {
+      const response = await fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify({
+          access_key: import.meta.env.VITE_WEB3FORMS_ACCESS_KEY || "YOUR_ACCESS_KEY_HERE",
+          name: name,
+          email: email,
+          subject: subject || "New Portfolio Contact",
+          message: message
+        })
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        setStatus("success");
+        setStatusMsg("Message sent successfully! I will get back to you shortly.");
+        setName("");
+        setEmail("");
+        setSubject("");
+        setMessage("");
+      } else {
+        setStatus("error");
+        setStatusMsg(result.message || "Something went wrong. Please try again.");
+      }
+    } catch (error) {
+      setStatus("error");
+      setStatusMsg("Failed to send message. Please check your network connection.");
+    }
   };
 
   return (
